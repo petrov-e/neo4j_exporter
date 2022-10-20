@@ -13,7 +13,7 @@ docker run --rm -itd --name neo4j_exporter -p 9099:5000 -e NEO4J_SERVICE=localho
 
 The page with metrics in Prometheus format will be available here:
 ```bash
-curl localhost:9099
+curl localhost:9099/metrics
 ```
 
 View logs:
