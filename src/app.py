@@ -1,13 +1,13 @@
 import pickle
 from multiprocessing import Process
 from time import gmtime, strftime
+import os
+import threading
 import prometheus_client
 from prometheus_client.core import CollectorRegistry
 from prometheus_client import Gauge
 from py2neo import Graph
 import urllib3
-import os
-import threading
 from flask import Response, Flask
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -16,8 +16,8 @@ CONTENT_TYPE_LATEST = str('text/plain; version=0.0.4; charset=utf-8')
 SERVICE_URL = os.environ.get('NEO4J_SERVICE')
 PREFIX = "neo4j_"
 PromOutput = []
-BackgroundCheck = False
-FlaskFirstLaunch = True
+BACKGROUND_CHECK = False
+FLASK_FIRST_LAUNCH = True
 Neo4jRequest = []
 
 with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
@@ -27,19 +27,19 @@ app = Flask(import_name=__name__)
 
 def BackgroundCollector():
     """Collecting Neo4j metrics in the background"""
-    global FlaskFirstLaunch
+    global FLASK_FIRST_LAUNCH
 
-    if FlaskFirstLaunch is True:
+    if FLASK_FIRST_LAUNCH is True:
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] Waiting for the web-server to start')
-        FlaskFirstLaunch = False
+        FLASK_FIRST_LAUNCH = False
         threading.Timer(60, BackgroundCollector).start()
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] The task of background collection of metrics has been successfully created')
     else:
-        global BackgroundCheck
-        if BackgroundCheck is True:
+        global BACKGROUND_CHECK
+        if BACKGROUND_CHECK is True:
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [WARN] Another background collector is already running, skipping the current run')
         else:
-            BackgroundCheck = True
+            BACKGROUND_CHECK = True
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] Start background collecting Prometheus metrics')
             lst = []
             registry = CollectorRegistry()
@@ -116,7 +116,7 @@ def BackgroundCollector():
             PromOutput = lst
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] Prometheus metrics have been successfully collected in the background')
 
-            BackgroundCheck = False
+            BACKGROUND_CHECK = False
 
         threading.Timer(240, BackgroundCollector).start()
 
