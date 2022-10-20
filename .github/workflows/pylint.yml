@@ -20,4 +20,4 @@ jobs:
         pip install pylint prometheus-client flask py2neo
     - name: Analysing the code with pylint
       run: |
-        pylint --disable=line-too-long $(git ls-files '*.py')
+        pylint --disable=line-too-long --disable=too-many-locals --disable=global-statement --disable=bare-except --disable=redefined-outer-name --disable=missing-module-docstring $(git ls-files '*.py')

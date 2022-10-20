@@ -20,19 +20,19 @@ BACKGROUND_CHECK = False
 FLASK_FIRST_LAUNCH = True
 Neo4jRequest = []
 
-with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
+with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', encoding="utf-8") as f:
     PodNamespace = f.readline()
 
 app = Flask(import_name=__name__)
 
-def BackgroundCollector():
+def background_collector():
     """Collecting Neo4j metrics in the background"""
     global FLASK_FIRST_LAUNCH
 
     if FLASK_FIRST_LAUNCH is True:
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] Waiting for the web-server to start')
         FLASK_FIRST_LAUNCH = False
-        threading.Timer(60, BackgroundCollector).start()
+        threading.Timer(60, background_collector).start()
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] The task of background collection of metrics has been successfully created')
     else:
         global BACKGROUND_CHECK
@@ -118,9 +118,9 @@ def BackgroundCollector():
 
             BACKGROUND_CHECK = False
 
-        threading.Timer(240, BackgroundCollector).start()
+        threading.Timer(240, background_collector).start()
 
-BackgroundCollector()
+background_collector()
 
 @app.route("/")
 def hello():
