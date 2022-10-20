@@ -26,6 +26,7 @@ with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace') as f:
 app = Flask(import_name=__name__)
 
 def BackgroundCollector():
+    """Collecting Neo4j metrics in the background"""
     global FlaskFirstLaunch
 
     if FlaskFirstLaunch is True:
@@ -123,10 +124,12 @@ BackgroundCollector()
 
 @app.route("/")
 def hello():
+    """Displaying the root page"""
     return "This is a Prometheus Exporter. Go to the /metrics page to get metrics"
 
 @app.route('/metrics', methods=['GET'])
 def metrics():
+    """Displaying the Prometheus Metrics page"""
     return Response(PromOutput,mimetype=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
