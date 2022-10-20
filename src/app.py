@@ -1,4 +1,6 @@
-from flask import Response, Flask
+import pickle
+from multiprocessing import Process
+from time import gmtime, strftime
 import prometheus_client
 from prometheus_client.core import CollectorRegistry
 from prometheus_client import Gauge
@@ -6,9 +8,7 @@ from py2neo import Graph
 import urllib3
 import os
 import threading
-from time import gmtime, strftime, sleep
-from multiprocessing import Process
-import pickle
+from flask import Response, Flask
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -63,8 +63,8 @@ def BackgroundCollector():
                 p1.join(timeout=10)
                 p1.terminate()
                 f = open('/tmp/result', 'rb')
-                Neo4jRequestResult = pickle.load(f)      
-                f.close() 
+                Neo4jRequestResult = pickle.load(f)
+                f.close()
             except:
                 Neo4jRequestResult = []
                 print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the database to get statuses')
@@ -99,8 +99,8 @@ def BackgroundCollector():
                         p2.join(timeout=10)
                         p2.terminate()
                         f = open('/tmp/result', 'rb')
-                        Neo4jRequestResult = pickle.load(f)      
-                        f.close() 
+                        Neo4jRequestResult = pickle.load(f)
+                        f.close()
                     except:
                         Neo4jRequestResult = []
                         print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the ' + DBAdress.lower() + ' to get long queries')
