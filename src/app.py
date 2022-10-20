@@ -20,8 +20,11 @@ BACKGROUND_CHECK = False
 FLASK_FIRST_LAUNCH = True
 NEO4J_REQUEST = []
 
-with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', encoding="utf-8") as f_file:
-    PodNamespace = f_file.readline()
+try:
+    with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', encoding="utf-8") as f_file:
+        POD_NAMESPACE = f_file.readline()
+except:
+    POD_NAMESPACE = "neo4j"
 
 app = Flask(import_name=__name__)
 
@@ -74,7 +77,7 @@ def background_collector():
                     db_status = 1
                 else:
                     db_status = 0
-                neo4j_db_status.labels(name=db_list['name'], address=db_list['address'].split('.')[0], currentStatus=db_list['currentStatus'], namespace=PodNamespace).set(db_status)
+                neo4j_db_status.labels(name=db_list['name'], address=db_list['address'].split('.')[0], currentStatus=db_list['currentStatus'], namespace=POD_NAMESPACE).set(db_status)
             lst.append(prometheus_client.generate_latest(neo4j_db_status))
 
             ### Long-running queries ###
@@ -106,8 +109,8 @@ def background_collector():
                         neo4j_request_result = []
                         print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the ' + db_adress.lower() + ' to get long queries')
                     for db_list in neo4j_request_result:
-                        neo4j_db_slow_queries.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], pageHits=db_list['pageHits'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=PodNamespace, address=db_adress.lower()).set(db_list['elapsedTimeMillis'])
-                        neo4j_db_slow_queries_page_hits.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=PodNamespace, address=db_adress.lower()).set(db_list['pageHits'])
+                        neo4j_db_slow_queries.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], pageHits=db_list['pageHits'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=POD_NAMESPACE, address=db_adress.lower()).set(db_list['elapsedTimeMillis'])
+                        neo4j_db_slow_queries_page_hits.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=POD_NAMESPACE, address=db_adress.lower()).set(db_list['pageHits'])
             lst.append(prometheus_client.generate_latest(neo4j_db_slow_queries))
             lst.append(prometheus_client.generate_latest(neo4j_db_slow_queries_page_hits))
 
