@@ -15,7 +15,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 CONTENT_TYPE_LATEST = str('text/plain; version=0.0.4; charset=utf-8')
 SERVICE_URL = os.environ.get('NEO4J_SERVICE')
 PREFIX = "neo4j_"
-PromOutput = []
+PROM_OUTPUT = []
 BACKGROUND_CHECK = False
 FLASK_FIRST_LAUNCH = True
 NEO4J_REQUEST = []
@@ -69,21 +69,21 @@ def background_collector():
             except:
                 neo4j_request_result = []
                 print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the database to get statuses')
-            for DBList in neo4j_request_result:
-                if DBList['currentStatus'] == 'online':
-                    DBStatus = 1
+            for db_list in neo4j_request_result:
+                if db_list['currentStatus'] == 'online':
+                    db_status = 1
                 else:
-                    DBStatus = 0
-                neo4j_db_status.labels(name=DBList['name'], address=DBList['address'].split('.')[0], currentStatus=DBList['currentStatus'], namespace=PodNamespace).set(DBStatus)
+                    db_status = 0
+                neo4j_db_status.labels(name=db_list['name'], address=db_list['address'].split('.')[0], currentStatus=db_list['currentStatus'], namespace=PodNamespace).set(db_status)
             lst.append(prometheus_client.generate_latest(neo4j_db_status))
 
             ### Long-running queries ###
-            Neo4jDBSlowQueries = Gauge('neo4j_db_slow_query', 'Queries that have been running for more than 10,000 milliseconds', ['database', 'transactionId', 'currentQueryId', 'status', 'activeLockCount', 'pageHits', 'cpuTimeMillis', 'waitTimeMillis', 'idleTimeSeconds', 'namespace', 'address'], registry=registry)
-            Neo4jDBSlowQueriesPageHits = Gauge('neo4j_db_slow_query_page_hits', 'Page hits amount of queries that have been running for more than 10,000 milliseconds', ['database', 'transactionId', 'currentQueryId', 'status', 'activeLockCount', 'cpuTimeMillis', 'waitTimeMillis', 'idleTimeSeconds', 'namespace', 'address'], registry=registry)
+            neo4j_db_slow_queries = Gauge('neo4j_db_slow_query', 'Queries that have been running for more than 10,000 milliseconds', ['database', 'transactionId', 'currentQueryId', 'status', 'activeLockCount', 'pageHits', 'cpuTimeMillis', 'waitTimeMillis', 'idleTimeSeconds', 'namespace', 'address'], registry=registry)
+            neo4j_db_slow_queries_page_hits = Gauge('neo4j_db_slow_query_page_hits', 'Page hits amount of queries that have been running for more than 10,000 milliseconds', ['database', 'transactionId', 'currentQueryId', 'status', 'activeLockCount', 'cpuTimeMillis', 'waitTimeMillis', 'idleTimeSeconds', 'namespace', 'address'], registry=registry)
             for key, value in os.environ.items():
                 if ("NEO4J_CORE" in key or "NEO4J_REPLICA" in key) and "PORT_7687_TCP_ADDR" in key and not "ADMIN" in key:
-                    DBAdress = key.split('_')[0] + '-' + key.split('_')[1] + '-' + key.split('_')[2]
-                    print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [-] Getting long queries from ' + DBAdress.lower())
+                    db_adress = key.split('_')[0] + '-' + key.split('_')[1] + '-' + key.split('_')[2]
+                    print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [-] Getting long queries from ' + db_adress.lower())
                     try:
                         NEO4J_REQUEST = Graph("bolt://"+str(value)+":7687")
                         def neo_query_2():
@@ -104,16 +104,16 @@ def background_collector():
                         f_file.close()
                     except:
                         neo4j_request_result = []
-                        print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the ' + DBAdress.lower() + ' to get long queries')
-                    for DBList in neo4j_request_result:
-                        Neo4jDBSlowQueries.labels(database=DBList['database'], transactionId=DBList['transactionId'], currentQueryId=DBList['currentQueryId'], status=DBList['status'], activeLockCount=DBList['activeLockCount'], pageHits=DBList['pageHits'], cpuTimeMillis=DBList['cpuTimeMillis'], waitTimeMillis=DBList['waitTimeMillis'], idleTimeSeconds=DBList['idleTimeSeconds'], namespace=PodNamespace, address=DBAdress.lower()).set(DBList['elapsedTimeMillis'])
-                        Neo4jDBSlowQueriesPageHits.labels(database=DBList['database'], transactionId=DBList['transactionId'], currentQueryId=DBList['currentQueryId'], status=DBList['status'], activeLockCount=DBList['activeLockCount'], cpuTimeMillis=DBList['cpuTimeMillis'], waitTimeMillis=DBList['waitTimeMillis'], idleTimeSeconds=DBList['idleTimeSeconds'], namespace=PodNamespace, address=DBAdress.lower()).set(DBList['pageHits'])
-            lst.append(prometheus_client.generate_latest(Neo4jDBSlowQueries))
-            lst.append(prometheus_client.generate_latest(Neo4jDBSlowQueriesPageHits))
+                        print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the ' + db_adress.lower() + ' to get long queries')
+                    for db_list in neo4j_request_result:
+                        neo4j_db_slow_queries.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], pageHits=db_list['pageHits'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=PodNamespace, address=db_adress.lower()).set(db_list['elapsedTimeMillis'])
+                        neo4j_db_slow_queries_page_hits.labels(database=db_list['database'], transactionId=db_list['transactionId'], currentQueryId=db_list['currentQueryId'], status=db_list['status'], activeLockCount=db_list['activeLockCount'], cpuTimeMillis=db_list['cpuTimeMillis'], waitTimeMillis=db_list['waitTimeMillis'], idleTimeSeconds=db_list['idleTimeSeconds'], namespace=PodNamespace, address=db_adress.lower()).set(db_list['pageHits'])
+            lst.append(prometheus_client.generate_latest(neo4j_db_slow_queries))
+            lst.append(prometheus_client.generate_latest(neo4j_db_slow_queries_page_hits))
 
             ### Final set of metrics ###
-            global PromOutput
-            PromOutput = lst
+            global PROM_OUTPUT
+            PROM_OUTPUT = lst
             print(strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] Prometheus metrics have been successfully collected in the background')
 
             BACKGROUND_CHECK = False
@@ -130,7 +130,7 @@ def hello():
 @app.route('/metrics', methods=['GET'])
 def metrics():
     """Displaying the Prometheus Metrics page"""
-    return Response(PromOutput,mimetype=CONTENT_TYPE_LATEST)
+    return Response(PROM_OUTPUT,mimetype=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
     app.run(debug=True)
