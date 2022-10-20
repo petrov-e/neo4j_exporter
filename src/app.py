@@ -18,10 +18,10 @@ PREFIX = "neo4j_"
 PromOutput = []
 BACKGROUND_CHECK = False
 FLASK_FIRST_LAUNCH = True
-Neo4jRequest = []
+NEO4J_REQUEST = []
 
-with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', encoding="utf-8") as f:
-    PodNamespace = f.readline()
+with open('/var/run/secrets/kubernetes.io/serviceaccount/namespace', encoding="utf-8") as f_file:
+    PodNamespace = f_file.readline()
 
 app = Flask(import_name=__name__)
 
@@ -45,37 +45,37 @@ def background_collector():
             registry = CollectorRegistry()
 
             ### Database statuses ###
-            Neo4jDBStatus = Gauge('neo4j_db_status', 'List of all databases with their status. 1 – online, 0 – all other statuses', ['name', 'address', 'currentStatus', 'namespace'], registry=registry)
+            neo4j_db_status = Gauge('neo4j_db_status', 'List of all databases with their status. 1 – online, 0 – all other statuses', ['name', 'address', 'currentStatus', 'namespace'], registry=registry)
             print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [-] Getting the statuses of all tables in the cluster')
             try:
-                global Neo4jRequest
-                Neo4jRequest = Graph("bolt://"+SERVICE_URL+":7687")
-                def NeoQuery1():
-                    global Neo4jRequest
-                    f = open('/tmp/result', 'wb')
-                    f.close()
-                    Neo4jRequestResult = Neo4jRequest.run('SHOW DATABASES YIELD name, address, currentStatus').data()
-                    f = open('/tmp/result', 'wb')
-                    pickle.dump(Neo4jRequestResult,f)
-                    f.close()
+                global NEO4J_REQUEST
+                NEO4J_REQUEST = Graph("bolt://"+SERVICE_URL+":7687")
+                def neo_query_1():
+                    global NEO4J_REQUEST
+                    f_file = open('/tmp/result', 'wb')
+                    f_file.close()
+                    neo4j_request_result = NEO4J_REQUEST.run('SHOW DATABASES YIELD name, address, currentStatus').data()
+                    f_file = open('/tmp/result', 'wb')
+                    pickle.dump(neo4j_request_result,f_file)
+                    f_file.close()
                     print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [+] Done')
-                p1 = Process(target=NeoQuery1, name='Process_request_1')
-                p1.start()
-                p1.join(timeout=10)
-                p1.terminate()
-                f = open('/tmp/result', 'rb')
-                Neo4jRequestResult = pickle.load(f)
-                f.close()
+                p_1 = Process(target=neo_query_1, name='Process_request_1')
+                p_1.start()
+                p_1.join(timeout=10)
+                p_1.terminate()
+                f_file = open('/tmp/result', 'rb')
+                neo4j_request_result = pickle.load(f_file)
+                f_file.close()
             except:
-                Neo4jRequestResult = []
+                neo4j_request_result = []
                 print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the database to get statuses')
-            for DBList in Neo4jRequestResult:
+            for DBList in neo4j_request_result:
                 if DBList['currentStatus'] == 'online':
                     DBStatus = 1
                 else:
                     DBStatus = 0
-                Neo4jDBStatus.labels(name=DBList['name'], address=DBList['address'].split('.')[0], currentStatus=DBList['currentStatus'], namespace=PodNamespace).set(DBStatus)
-            lst.append(prometheus_client.generate_latest(Neo4jDBStatus))
+                neo4j_db_status.labels(name=DBList['name'], address=DBList['address'].split('.')[0], currentStatus=DBList['currentStatus'], namespace=PodNamespace).set(DBStatus)
+            lst.append(prometheus_client.generate_latest(neo4j_db_status))
 
             ### Long-running queries ###
             Neo4jDBSlowQueries = Gauge('neo4j_db_slow_query', 'Queries that have been running for more than 10,000 milliseconds', ['database', 'transactionId', 'currentQueryId', 'status', 'activeLockCount', 'pageHits', 'cpuTimeMillis', 'waitTimeMillis', 'idleTimeSeconds', 'namespace', 'address'], registry=registry)
@@ -85,27 +85,27 @@ def background_collector():
                     DBAdress = key.split('_')[0] + '-' + key.split('_')[1] + '-' + key.split('_')[2]
                     print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [-] Getting long queries from ' + DBAdress.lower())
                     try:
-                        Neo4jRequest = Graph("bolt://"+str(value)+":7687")
-                        def NeoQuery2():
-                            global Neo4jRequest
-                            f = open('/tmp/result', 'wb')
-                            f.close()
-                            Neo4jRequestResult = Neo4jRequest.run('SHOW TRANSACTIONS YIELD database, transactionId, currentQueryId, status, activeLockCount, pageHits, elapsedTime, cpuTime, waitTime, idleTime WHERE elapsedTime.milliseconds > 10000 RETURN database, transactionId, currentQueryId, status, activeLockCount, pageHits, elapsedTime.milliseconds AS elapsedTimeMillis, cpuTime.milliseconds AS cpuTimeMillis, waitTime.milliseconds AS waitTimeMillis, idleTime.seconds AS idleTimeSeconds').data()
-                            f = open('/tmp/result', 'wb')
-                            pickle.dump(Neo4jRequestResult,f)
-                            f.close()
+                        NEO4J_REQUEST = Graph("bolt://"+str(value)+":7687")
+                        def neo_query_2():
+                            global NEO4J_REQUEST
+                            f_file = open('/tmp/result', 'wb')
+                            f_file.close()
+                            neo4j_request_result = NEO4J_REQUEST.run('SHOW TRANSACTIONS YIELD database, transactionId, currentQueryId, status, activeLockCount, pageHits, elapsedTime, cpuTime, waitTime, idleTime WHERE elapsedTime.milliseconds > 10000 RETURN database, transactionId, currentQueryId, status, activeLockCount, pageHits, elapsedTime.milliseconds AS elapsedTimeMillis, cpuTime.milliseconds AS cpuTimeMillis, waitTime.milliseconds AS waitTimeMillis, idleTime.seconds AS idleTimeSeconds').data()
+                            f_file = open('/tmp/result', 'wb')
+                            pickle.dump(neo4j_request_result,f_file)
+                            f_file.close()
                             print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [INFO] [+] Done')
-                        p2 = Process(target=NeoQuery2, name='Process_request_2')
-                        p2.start()
-                        p2.join(timeout=10)
-                        p2.terminate()
-                        f = open('/tmp/result', 'rb')
-                        Neo4jRequestResult = pickle.load(f)
-                        f.close()
+                        p_2 = Process(target=neo_query_2, name='Process_request_2')
+                        p_2.start()
+                        p_2.join(timeout=10)
+                        p_2.terminate()
+                        f_file = open('/tmp/result', 'rb')
+                        neo4j_request_result = pickle.load(f_file)
+                        f_file.close()
                     except:
-                        Neo4jRequestResult = []
+                        neo4j_request_result = []
                         print (strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ' [ERROR] Error connecting to the ' + DBAdress.lower() + ' to get long queries')
-                    for DBList in Neo4jRequestResult:
+                    for DBList in neo4j_request_result:
                         Neo4jDBSlowQueries.labels(database=DBList['database'], transactionId=DBList['transactionId'], currentQueryId=DBList['currentQueryId'], status=DBList['status'], activeLockCount=DBList['activeLockCount'], pageHits=DBList['pageHits'], cpuTimeMillis=DBList['cpuTimeMillis'], waitTimeMillis=DBList['waitTimeMillis'], idleTimeSeconds=DBList['idleTimeSeconds'], namespace=PodNamespace, address=DBAdress.lower()).set(DBList['elapsedTimeMillis'])
                         Neo4jDBSlowQueriesPageHits.labels(database=DBList['database'], transactionId=DBList['transactionId'], currentQueryId=DBList['currentQueryId'], status=DBList['status'], activeLockCount=DBList['activeLockCount'], cpuTimeMillis=DBList['cpuTimeMillis'], waitTimeMillis=DBList['waitTimeMillis'], idleTimeSeconds=DBList['idleTimeSeconds'], namespace=PodNamespace, address=DBAdress.lower()).set(DBList['pageHits'])
             lst.append(prometheus_client.generate_latest(Neo4jDBSlowQueries))
